@@ -5,7 +5,7 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # Install system dependencies required by OpenCV
-RUN apt-get update && apt-get install -y ffmpeg libgl1-mesa-glx \
+RUN apt-get update && apt-get install -y ffmpeg libgl1 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file first to leverage Docker cache
