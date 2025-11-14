@@ -1,3 +1,13 @@
+---
+title: Vehicle Tracking
+emoji: 🚗
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
+
 # Multi-Vehicle Tracking using the SORT Algorithm
 
 This project is a Python-based implementation of the **SORT (Simple Online and Realtime Tracking)** algorithm. It uses YOLOv8 for object detection and a Kalman Filter for state estimation to track multiple vehicles in a video stream.
