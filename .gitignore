@@ -1,0 +1,31 @@
+# File: .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+.venv/
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Project Specific
+uploads/
+outputs/
+trafficDatasetKaggle/
+
+# Keep empty directories in git if needed
+!uploads/.gitkeep
+!outputs/.gitkeep
+!weights/.gitkeep
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.local

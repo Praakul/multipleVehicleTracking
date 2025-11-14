@@ -1,0 +1,11 @@
+# File: requirements.txt
+
+fastapi
+uvicorn[standard]
+python-multipart    # Required for FastAPI file uploads
+numpy
+scipy
+ultralytics
+
+# Use the headless version for servers (no GUI)
+opencv-python-headless
