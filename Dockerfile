@@ -15,13 +15,12 @@ COPY requirements.txt .
 # We use --no-cache-dir to keep the image size small
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- Download the YOLO model during the build ---
-# This makes the container self-contained and avoids
-# downloading the model every time the app starts.
-RUN mkdir -p /app/weights
-RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt').export(format='pt',_check=False); import shutil; shutil.move('yolov8n.pt', '/app/weights/yolov8n.pt')"
+# --- The model download lines have been removed ---
+# We don't need them because the model is now in Git LFS
+# and will be copied by the 'COPY . .' command.
 
 # Copy the rest of the application's code into the container
+# This will copy app.py, requirements.txt, and the 'weights' folder
 COPY . .
 
 # Expose the port the app runs on
