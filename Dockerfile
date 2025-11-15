@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port the app runs on
-EXPOSE 8000
+EXPOSE 7860
 
 # Command to run the application using uvicorn
 # This now correctly points to the 'app' object inside 'app.py'
