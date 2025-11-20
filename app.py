@@ -8,9 +8,7 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse
 import uvicorn
 
-
 app = FastAPI(title="Vehicle Tracking API")
-
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("outputs", exist_ok=True)
