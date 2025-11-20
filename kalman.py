@@ -1,5 +1,3 @@
-# File: kalman.py
-
 import numpy as np
 
 def iou(bbox1, bbox2):

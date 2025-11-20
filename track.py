@@ -1,5 +1,3 @@
-# File: track.py
-
 import numpy as np
 from kalman import KalmanFilter
 
@@ -12,11 +10,11 @@ class Track:
         # We convert [x1, y1, x2, y2] to [cx, cy, w, h]
         self.kf.state[:4] = self.bbox_to_state(initial_bbox)
         
-        # This is the *last known* bounding box
+
         self.bbox = initial_bbox
         
-        self.time_since_update = 0 # Frames since last detection
-        self.hits = 1 # Number of times this track has been detected
+        self.time_since_update = 0 
+        self.hits = 1 
 
     def bbox_to_state(self, bbox):
         """Converts [x1, y1, x2, y2] to [center_x, center_y, width, height]"""
@@ -40,20 +38,14 @@ class Track:
         """Predict the next state using the Kalman Filter."""
         predicted_state = self.kf.predict()
         
-        # Convert predicted state back to a bounding box
         self.bbox = self.state_to_bbox(predicted_state)
         self.time_since_update += 1
 
     def update(self, bbox):
         """Update the Kalman Filter with a new detection."""
-        # Convert measurement
         measurement = self.bbox_to_state(bbox)
         
-        # Update the filter
         self.kf.update(measurement)
-        
-        # Update track properties
-        # The state from the KF is now the "ground truth"
         self.bbox = self.state_to_bbox(self.kf.state)
         self.time_since_update = 0
         self.hits += 1
