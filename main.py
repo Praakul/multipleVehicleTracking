@@ -5,7 +5,8 @@ import shutil
 from datetime import datetime
 from tracker import Tracker
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 app = FastAPI(title="Vehicle Tracking API")
@@ -72,11 +73,13 @@ def process_video(video_path, output_filename):
         print(f"Error processing video {video_path}: {e}")
     
 # --- API Endpoints ---
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """A simple health check endpoint."""
-    return JSONResponse(content={"status": "online", "message": "Vehicle Tracking API is running."})
+    """Serves the frontend UI."""
+    with open("static/index.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
 
 @app.post("/track_video/")
