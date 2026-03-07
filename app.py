@@ -80,7 +80,7 @@ async def root():
 
 
 @app.post("/track_video/")
-async def track_video_endpoint(file: UploadFile = File(...)):
+def track_video_endpoint(file: UploadFile = File(...)):
     """
     Upload a video file, process it for vehicle tracking,
     and return the processed video.

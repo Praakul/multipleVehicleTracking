@@ -23,34 +23,46 @@ class Tracker:
         for track in self.tracks:
             track.predict()
 
+        matched_track_indices = set()
+        matched_det_indices = set()
+
         if len(self.tracks) > 0 and len(detections) > 0:
-            cost_matrix = np.zeros((len(self.tracks), len(detections)))
+            num_tracks = len(self.tracks)
+            num_dets = len(detections)
+            cost_matrix = np.zeros((num_tracks, num_dets))
+
             for i, track in enumerate(self.tracks):
                 for j, det in enumerate(detections):
-                    cost_matrix[i, j] = 1 - iou(track.bbox, det) 
-            
-            row_ind, col_ind = linear_sum_assignment(cost_matrix)
-            
-            matched_indices = set()
-            unmatched_track_indices = set(range(len(self.tracks)))
+                    cost_matrix[i, j] = 1 - iou(track.bbox, det)
+
+            # Gate the cost matrix: set entries above threshold to a large
+            # value so the Hungarian algorithm will never assign them.
+            GATE_VALUE = 1e5
+            gated_cost = cost_matrix.copy()
+            gated_cost[gated_cost > (1 - IOU_MATCH_THRESHOLD)] = GATE_VALUE
+
+            row_ind, col_ind = linear_sum_assignment(gated_cost)
 
             for r, c in zip(row_ind, col_ind):
-                if cost_matrix[r, c] < (1 - IOU_MATCH_THRESHOLD):
+                # Only accept assignments that were not gated
+                if gated_cost[r, c] < GATE_VALUE:
                     self.tracks[r].update(detections[c])
-                    matched_indices.add(c)
-                    unmatched_track_indices.remove(r)
-            
-            unmatched_detections = [det for i, det in enumerate(detections) if i not in matched_indices]
-        
-        else:
-            unmatched_detections = detections
-            unmatched_track_indices = set(range(len(self.tracks)))
-            
+                    matched_track_indices.add(r)
+                    matched_det_indices.add(c)
+
+        # Unmatched detections become new tracks
+        unmatched_detections = [det for i, det in enumerate(detections) if i not in matched_det_indices]
         for det in unmatched_detections:
             new_track = Track(self.next_track_id, det)
             self.tracks.append(new_track)
             self.next_track_id += 1
-            
-        self.tracks = [t for i, t in enumerate(self.tracks) if i not in unmatched_track_indices or t.time_since_update <= MAX_FRAMES_SINCE_UPDATE]
+
+        # Remove stale unmatched tracks that exceeded the age limit
+        unmatched_track_indices = set(range(len(self.tracks))) - matched_track_indices
+        self.tracks = [
+            t for i, t in enumerate(self.tracks)
+            if i not in unmatched_track_indices or t.time_since_update <= MAX_FRAMES_SINCE_UPDATE
+        ]
+
         active_tracks = [t for t in self.tracks if t.time_since_update == 0]
         return active_tracks
