@@ -31,7 +31,6 @@ def process_video(video_path, output_filename):
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
 
-        # Ensure fps is valid
         if fps == 0:
             print("Warning: Video FPS is 0, setting to 30.")
             fps = 30
@@ -39,25 +38,50 @@ def process_video(video_path, output_filename):
         video_writer = cv2.VideoWriter(output_filename, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
 
         local_tracker = Tracker()
+        
+        frame_id = 0
+        SKIP_FRAMES = 2 # Process every 3rd frame
+        last_tracks = [] # Cache the tracks to draw on skipped frames
 
         while cap.isOpened():
             success, frame = cap.read()
             if not success:
                 break
+                
+            frame_id += 1
 
-            results = model(frame, verbose=False)
+            if frame_id % SKIP_FRAMES == 0:
+                # Downscale frame for faster inference on CPU
+                scale_percent = 50 
+                width = int(frame.shape[1] * scale_percent / 100)
+                height = int(frame.shape[0] * scale_percent / 100)
+                dim = (width, height)
+                resized_frame = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+
+                # Run inference on smaller frame, half precision helps if supported
+                results = model(resized_frame, verbose=False, half=True)
+                
+                detections = []
+                for result in results:
+                    for box in result.boxes:
+                        # COCO class IDs: 2=car, 5=bus, 7=truck
+                        if int(box.cls) in [2, 5, 7]: 
+                            # Scale coordinates back up to original size
+                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+                            x1 = int(x1 * 100 / scale_percent)
+                            y1 = int(y1 * 100 / scale_percent)
+                            x2 = int(x2 * 100 / scale_percent)
+                            y2 = int(y2 * 100 / scale_percent)
+                            
+                            detections.append([x1, y1, x2, y2])
+                
+                last_tracks = local_tracker.update(detections)
+            else:
+                # On skipped frames, just predict the next state using Kalman
+                # without running expensive YOLO inference
+                last_tracks = local_tracker.update([])
             
-            detections = []
-            for result in results:
-                for box in result.boxes:
-                    # COCO class IDs: 2=car, 5=bus, 7=truck
-                    if int(box.cls) in [2, 5, 7]: 
-                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
-                        detections.append([x1, y1, x2, y2])
-            
-            tracks = local_tracker.update(detections)
-            
-            for track in tracks:
+            for track in last_tracks:
                 x1, y1, x2, y2 = map(int, track.bbox)
                 track_id = track.track_id
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
