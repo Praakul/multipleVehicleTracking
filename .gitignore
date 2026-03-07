@@ -17,6 +17,7 @@ dist/
 # Project Specific
 uploads/
 outputs/
+weights/
 trafficDatasetKaggle/
 
 # Keep empty directories in git if needed

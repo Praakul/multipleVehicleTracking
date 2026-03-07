@@ -14,6 +14,10 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the YOLOv8n model weights during build
+# so they don't need to be shipped in the git repo.
+RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+
 # Copy the rest of the application's code into the container
 COPY . .
 

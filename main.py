@@ -12,11 +12,9 @@ app = FastAPI(title="Vehicle Tracking API")
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("outputs", exist_ok=True)
-os.makedirs("weights", exist_ok=True)
 
-model_path = "weights/yolov8n.pt"
-
-model = YOLO(model_path)
+# ultralytics auto-downloads yolov8n.pt if not present
+model = YOLO("yolov8n.pt")
 
 def process_video(video_path, output_filename):
     """
