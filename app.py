@@ -106,6 +106,8 @@ async def root():
         return HTMLResponse(content=f.read(), status_code=200)
 
 
+import subprocess
+
 @app.post("/track_video/")
 def track_video_endpoint(file: UploadFile = File(...)):
     """
@@ -120,14 +122,39 @@ def track_video_endpoint(file: UploadFile = File(...)):
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         safe_filename = os.path.basename(file.filename)
-        output_filename = f"outputs/output_{timestamp}_{safe_filename}"
+        safe_name = os.path.splitext(safe_filename)[0]
+        
+        # We will save OpenCV output as temp_output first
+        temp_output = f"outputs/temp_{timestamp}_{safe_name}.mp4"
+        output_filename = f"outputs/output_{timestamp}_{safe_name}.webm"
 
-        process_video(input_path, output_filename)
+        process_video(input_path, temp_output)
+        
+        # Re-encode to WebM (VP9 codec) for Universal Browser Support
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", temp_output, "-vcodec", "libvpx-vp9", "-b:v", "1M", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", "-pix_fmt", "yuv420p", "-an", output_filename],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True
+            )
+            # Remove the temporary file if conversion succeeded
+            if os.path.exists(temp_output):
+                os.remove(temp_output)
+        except subprocess.CalledProcessError as e:
+            print(f"FFmpeg conversion failed: {e.stderr.decode('utf-8') if e.stderr else e}")
+            output_filename = temp_output  # Fallback to the temp output if conversion fails
+        except Exception as e:
+            print(f"FFmpeg conversion failed: {e}")
+            output_filename = temp_output  # Fallback to the temp output if conversion fails
 
         if not os.path.exists(output_filename):
             return JSONResponse(status_code=500, content={"message": "Failed to process video."})
 
-        return FileResponse(path=output_filename, media_type='video/mp4', filename=os.path.basename(output_filename))
+        # Set headers inline and use webm mime type
+        headers = {"Content-Disposition": "inline"}
+        media_type = 'video/webm' if output_filename.endswith('.webm') else 'video/mp4'
+        return FileResponse(path=output_filename, media_type=media_type, headers=headers)
     
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"An error occurred: {e}"})

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultVideo = document.getElementById('result-video');
     const btnRestart = document.getElementById('btn-restart');
     const btnDownload = document.getElementById('btn-download');
+    const btnPlay = document.getElementById('btn-play');
 
     // State management
     const switchSection = (newSection) => {
@@ -116,7 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup download button
         const safeName = originalFileName.replace(/\.[^/.]+$/, ""); // strip extension
         btnDownload.href = blobUrl;
-        btnDownload.download = `tracked_${safeName}.mp4`;
+        btnDownload.download = `tracked_${safeName}.webm`;
+        
+        // Setup play button
+        if (btnPlay) {
+            btnPlay.href = blobUrl;
+        }
 
         switchSection(sectionResult);
     }
