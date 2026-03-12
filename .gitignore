@@ -30,3 +30,5 @@ trafficDatasetKaggle/
 .vscode/
 .idea/
 *.local
+
+*.pt
