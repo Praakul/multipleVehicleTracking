@@ -33,7 +33,8 @@ The tracking logic follows the core principles of the SORT algorithm:
 This application is an API, not a website. The easiest way to use it is through the built-in documentation page.
 
 ### 1. hf page (Recommended)
-1. click on "https://huggingface.co/spaces/PrajwalKulkarni/vehicleTracking",upload video and then wait until it returns a video on the screen which can be viewed and downloaded.
+1. click on "https://huggingface.co/spaces/PrajwalKulkarni/vehicleTracking" 
+2. upload video and then wait until it returns a video on the screen which can be viewed and downloaded.
 
 
 ### 2. Using `curl` (Command Line)
