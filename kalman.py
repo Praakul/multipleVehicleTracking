@@ -55,7 +55,6 @@ class KalmanFilter:
         # Initial state covariance (our uncertainty about the initial state)
         # High values mean high uncertainty.
         self.P = np.eye(6) * 1000
-        np.fill_diagonal(self.P[4:], 1000) # High uncertainty in initial velocity
 
         # Process noise covariance (uncertainty in the model)
         # This accounts for accelerations (changes in velocity).

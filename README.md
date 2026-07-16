@@ -32,15 +32,9 @@ The tracking logic follows the core principles of the SORT algorithm:
 
 This application is an API, not a website. The easiest way to use it is through the built-in documentation page.
 
-### 1. Using the Interactive Docs (Recommended)
+### 1. hf page (Recommended)
+1. click on "https://huggingface.co/spaces/PrajwalKulkarni/vehicleTracking",upload video and then wait until it returns a video on the screen which can be viewed and downloaded.
 
-1. Go to the app's documentation page: https://prajwalkulkarni-vehicletracking.hf.space/docs
-2. Click on the green `POST /track_video/` endpoint to expand it.
-3. Click the "Try it out" button.
-4. Under "Request body", click the "Choose File" button and upload a video file.
-5. Click the blue "Execute" button.
-6. Wait for the server to process the video.
-7. When it's complete, scroll down to the "Responses" section and click the "Download file" link to get your processed video.
 
 ### 2. Using `curl` (Command Line)
 

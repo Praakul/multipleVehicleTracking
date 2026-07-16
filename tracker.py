@@ -64,5 +64,4 @@ class Tracker:
             if i not in unmatched_track_indices or t.time_since_update <= MAX_FRAMES_SINCE_UPDATE
         ]
 
-        active_tracks = [t for t in self.tracks if t.time_since_update == 0]
-        return active_tracks
+        return self.tracks

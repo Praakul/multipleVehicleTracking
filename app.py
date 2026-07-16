@@ -4,10 +4,11 @@ import os
 import shutil
 from datetime import datetime
 from tracker import Tracker
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+import threading
 
 app = FastAPI(title="Vehicle Tracking API")
 
@@ -16,11 +17,14 @@ os.makedirs("outputs", exist_ok=True)
 
 # ultralytics auto-downloads yolov8n.pt if not present
 model = YOLO("yolov8n.pt")
+model_lock = threading.Lock()
 
 def process_video(video_path, output_filename):
     """
     Processes a video file to track vehicles and saves the output.
     """
+    cap = None
+    video_writer = None
     try:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -60,7 +64,8 @@ def process_video(video_path, output_filename):
                 resized_frame = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
 
                 # Run inference on smaller frame, half precision helps if supported
-                results = model(resized_frame, verbose=False, half=True)
+                with model_lock:
+                    results = model(resized_frame, verbose=False, half=True)
                 
                 detections = []
                 for result in results:
@@ -68,7 +73,7 @@ def process_video(video_path, output_filename):
                         # COCO class IDs: 2=car, 5=bus, 7=truck
                         if int(box.cls) in [2, 5, 7]: 
                             # Scale coordinates back up to original size
-                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                             x1 = int(x1 * 100 / scale_percent)
                             y1 = int(y1 * 100 / scale_percent)
                             x2 = int(x2 * 100 / scale_percent)
@@ -90,12 +95,15 @@ def process_video(video_path, output_filename):
 
             video_writer.write(frame)
 
-        video_writer.release()
-        cap.release()
         print(f"✅ Processing complete. Video saved to: {output_filename}")
 
     except Exception as e:
         print(f"Error processing video {video_path}: {e}")
+    finally:
+        if video_writer is not None:
+            video_writer.release()
+        if cap is not None:
+            cap.release()
     
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -109,7 +117,7 @@ async def root():
 import subprocess
 
 @app.post("/track_video/")
-def track_video_endpoint(file: UploadFile = File(...)):
+def track_video_endpoint(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
     """
     Upload a video file, process it for vehicle tracking,
     and return the processed video.
@@ -154,6 +162,7 @@ def track_video_endpoint(file: UploadFile = File(...)):
         # Set headers inline and use webm mime type
         headers = {"Content-Disposition": "inline"}
         media_type = 'video/webm' if output_filename.endswith('.webm') else 'video/mp4'
+        background_tasks.add_task(os.remove, output_filename)
         return FileResponse(path=output_filename, media_type=media_type, headers=headers)
     
     except Exception as e:
