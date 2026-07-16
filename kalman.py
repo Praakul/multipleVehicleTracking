@@ -24,44 +24,44 @@ def iou(bbox1, bbox2):
 
 class KalmanFilter:
     def __init__(self):
-        # State vector: [x_center, y_center, width, height, vx, vy]
-        # We track center, size (w,h), and velocities of x and y.
-        # This is a 6-dimensional state vector.
-        self.state = np.zeros(6)
+        # State vector: [x_center, y_center, scale, ratio, vx, vy, vs]
+        # We track center, scale (area), aspect ratio, and velocities of x, y, and scale.
+        # This is a 7-dimensional state vector.
+        self.state = np.zeros(7)
         
         # State transition matrix (models constant velocity)
-        # [ 1, 0, 0, 0, dt, 0  ]  (x' = x + vx*dt)
-        # [ 0, 1, 0, 0, 0,  dt ]  (y' = y + vy*dt)
-        # [ 0, 0, 1, 0, 0,  0  ]  (w' = w)
-        # [ 0, 0, 0, 1, 0,  0  ]  (h' = h)
-        # [ 0, 0, 0, 0, 1,  0  ]  (vx' = vx)
-        # [ 0, 0, 0, 0, 0,  1  ]  (vy' = vy)
+        # [ 1, 0, 0, 0, dt, 0,  0 ]  (x' = x + vx*dt)
+        # [ 0, 1, 0, 0, 0,  dt, 0 ]  (y' = y + vy*dt)
+        # [ 0, 0, 1, 0, 0,  0,  dt]  (s' = s + vs*dt)
+        # [ 0, 0, 0, 1, 0,  0,  0 ]  (r' = r)
+        # [ 0, 0, 0, 0, 1,  0,  0 ]  (vx' = vx)
+        # [ 0, 0, 0, 0, 0,  1,  0 ]  (vy' = vy)
+        # [ 0, 0, 0, 0, 0,  0,  1 ]  (vs' = vs)
         # We assume dt=1 frame.
-        self.F = np.array([[1, 0, 0, 0, 1, 0],
-                           [0, 1, 0, 0, 0, 1],
-                           [0, 0, 1, 0, 0, 0],
-                           [0, 0, 0, 1, 0, 0],
-                           [0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 1]])
+        self.F = np.array([[1, 0, 0, 0, 1, 0, 0],
+                           [0, 1, 0, 0, 0, 1, 0],
+                           [0, 0, 1, 0, 0, 0, 1],
+                           [0, 0, 0, 1, 0, 0, 0],
+                           [0, 0, 0, 0, 1, 0, 0],
+                           [0, 0, 0, 0, 0, 1, 0],
+                           [0, 0, 0, 0, 0, 0, 1]])
 
         # Measurement matrix (maps state to measurement space)
-        # We only measure [x_center, y_center, width, height].
+        # We only measure [x_center, y_center, scale, ratio].
         # This is a 4-dimensional measurement.
-        self.H = np.array([[1, 0, 0, 0, 0, 0],
-                           [0, 1, 0, 0, 0, 0],
-                           [0, 0, 1, 0, 0, 0],
-                           [0, 0, 0, 1, 0, 0]])
+        self.H = np.array([[1, 0, 0, 0, 0, 0, 0],
+                           [0, 1, 0, 0, 0, 0, 0],
+                           [0, 0, 1, 0, 0, 0, 0],
+                           [0, 0, 0, 1, 0, 0, 0]])
 
         # Initial state covariance (our uncertainty about the initial state)
-        # High values mean high uncertainty.
-        self.P = np.eye(6) * 1000
+        # Small uncertainty for observed variables (position, size), massive for unobserved (velocities)
+        self.P = np.diag([10, 10, 10, 10, 10000, 10000, 10000]).astype(float)
 
         # Process noise covariance (uncertainty in the model)
         # This accounts for accelerations (changes in velocity).
-        # We are most uncertain about velocity changes.
-        q_pos = 0.1 # Small uncertainty in position
-        q_vel = 1.0 # Higher uncertainty in velocity
-        self.Q = np.diag([q_pos, q_pos, q_pos, q_pos, q_vel, q_vel])
+        # Standard tuned hyperparameters for SORT process noise
+        self.Q = np.diag([0.01, 0.01, 0.0001, 0.0001, 0.01, 0.01, 0.0001]).astype(float)
 
         # Measurement noise covariance (uncertainty from the YOLO detector)
         # This is how much we trust our detector's bounding boxes.
@@ -91,5 +91,5 @@ class KalmanFilter:
         self.state = self.state + K @ y
         
         # 5. Update state covariance
-        I = np.eye(6)
+        I = np.eye(7)
         self.P = (I - K @ self.H) @ self.P
